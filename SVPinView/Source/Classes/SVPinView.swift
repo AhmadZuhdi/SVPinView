@@ -79,6 +79,7 @@ public class SVPinView: UIView {
     public var font: UIFont = UIFont.systemFont(ofSize: 15)
     public var keyboardType: UIKeyboardType = UIKeyboardType.phonePad
     public var keyboardAppearance: UIKeyboardAppearance = .default
+    public var autocapitalizationType: UITextAutocapitalizationType = .allCharacters
     public var becomeFirstResponderAtIndex: Int? = nil
     public var isContentTypeOneTimeCode: Bool = true
     public var shouldDismissKeyboardOnEmptyFirstField: Bool = false
@@ -88,7 +89,7 @@ public class SVPinView: UIView {
     
     public var didFinishCallback: ((String)->())?
     public var didChangeCallback: ((String)->())?
-    
+
     // MARK: - Init methods -
     required public init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
@@ -250,9 +251,14 @@ public class SVPinView: UIView {
     /// Returns the entered PIN; returns empty string if incomplete
     /// - Returns: The entered PIN.
     @objc
-    public func getPin() -> String {
-        
+    public func getPin(ignoreMatch: Bool = false) -> String {
+
         guard !isLoading else { return "" }
+
+        if (ignoreMatch) {
+            return password.joined()
+        }
+
         guard password.count == pinLength && password.joined().trimmingCharacters(in: CharacterSet(charactersIn: " ")).count == pinLength else {
             return ""
         }
@@ -311,6 +317,19 @@ public class SVPinView: UIView {
             validateAndSendCallback()
         }
     }
+
+    /// set to focus
+    @objc
+    public func setFocus() {
+        // Get the first textField
+        guard let textField = collectionView.cellForItem(at: IndexPath(item: 0, section: 0))?.viewWithTag(101 + 0) as? SVPinField
+        else {
+            showPinError(error: "ERR-103: Type Mismatch")
+            return
+        }
+
+        textField.becomeFirstResponder()
+    }
 }
 
 // MARK: - CollectionView methods -
@@ -345,6 +364,7 @@ extension SVPinView : UICollectionViewDataSource, UICollectionViewDelegate, UICo
         textField.keyboardType = self.keyboardType
         textField.keyboardAppearance = self.keyboardAppearance
         textField.inputAccessoryView = self.pinInputAccessoryView
+        textField.autocapitalizationType = self.autocapitalizationType
         
         textField.delegate = self
         textField.addTarget(self, action: #selector(textFieldDidChange(_:)), for: .editingChanged)
